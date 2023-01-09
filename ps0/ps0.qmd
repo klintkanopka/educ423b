@@ -1,0 +1,33 @@
+---
+title: "Problem Set 0"
+author: "[[your name here]]"
+format: html
+editor: visual
+---
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you consulted, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with:**
+
+## Short Answers
+
+## Working With Data
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+import(tidyverse)
+
+d <- 
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).

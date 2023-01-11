@@ -1,0 +1,149 @@
+---
+title: "Lab 1"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(viridis)
+
+d <- read_csv('https://raw.githubusercontent.com/klintkanopka/educ423b/main/wk01/cereal.csv')
+```
+
+## OLS Regression
+
+OLS regression wants a dataframe, and takes a *formula* for the model specification. We can fit an OLS model using the `lm()` command:
+
+```{r}
+m_ols <- lm(calories ~ carbo + fat, data=d)
+```
+
+Using `summary()` we can see how our model performed (using $R^2$) and look at the values of the parameters we have estimated. The function `coef()` will let us extract those model parameters for use elsewhere. We can also get the individual model predicted outputs, $\hat{y}_i$, using the `predict()` function:
+
+```{r}
+summary(m_ols)
+```
+
+```{r}
+coef_ols <- coef(m_ols)
+coef_ols
+```
+
+```{r}
+y_hat <- predict(m_ols)
+y_hat
+```
+
+A good first step in looking at model performance is to plot actual values against predicted values. If our model is doing the right thing, these should lie along the line $y=x$:
+
+```{r}
+output <- data.frame(
+  y = d$calories,
+  y_hat_ols = y_hat
+)
+
+ggplot(output, aes(x = y_hat_ols, y=y)) +
+  geom_abline(aes(intercept=0, slope=1), lty=2) +
+  geom_point(color='forestgreen') +
+  theme_bw()
+```
+
+If we want to see what our model is going to predict as a function of the inputs, we can make an ouput field. This involves setting up a grid of values that we want predictions at:
+
+```{r}
+d_grid <- data.frame(
+  carbo = rep(1:20, times=20),
+  fat = rep(1:20, each=20)
+)
+
+d_grid$y_hat <- predict(m_ols, d_grid)
+
+ggplot(d_grid, aes(x=carbo, y=fat, fill=y_hat)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_bw()
+```
+
+With a partner, see if you can find a set of predictor variables that predict calories per serving better than fat and carbo. Start using only two, and plot the output field. Then, use as many as you like. What is the best $R^2$ you can obtain?
+
+```{r}
+
+```
+
+## k-Nearest Neighbor Regression
+
+We can use a kNN regression to do the exact same thing. The function `knnreg()` comes from the `caret` package.
+
+```{r}
+m_knn <- knnreg(calories ~ carbo + fat, data=d)
+```
+
+Now let's look at our `summary()` and `coef()`
+
+```{r}
+summary(m_knn)
+```
+
+That's... *different*...
+
+```{r}
+coef(m_knn)
+```
+
+Remember the parameters! `knnreg()` defaults to $k=5$ and we can specify that in future calls (which we will do). Let's compare outputs:
+
+```{r}
+output$y_hat_knn_5 <- predict(m_knn, d)
+
+ggplot(output, aes(x = y_hat_knn_5, y=y)) +
+  geom_abline(aes(intercept=0, slope=1), lty=2) +
+  geom_point(color='forestgreen') +
+  theme_bw()
+```
+
+We can look at the two models relative to each other to get a better sense of who did "better."
+
+```{r}
+output |> 
+  pivot_longer(-y) |> 
+  ggplot(aes(y=y, x=value, color=name)) +
+  geom_abline(aes(intercept=0, slope=1), lty=2) +
+  geom_point() +
+  theme_bw()
+```
+
+Let's look at a prediction field for our kNN model:
+
+```{r}
+d_grid <- data.frame(
+  carbo = rep(1:20, times=20),
+  fat = rep(1:20, each=20)
+)
+
+d_grid$y_hat <- predict(m_knn, d_grid)
+
+ggplot(d_grid, aes(x=carbo, y=fat, fill=y_hat)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_bw()
+```
+
+THIS IS VERY DIFFERENT!
+
+With a partner, explore some other values for $k$ . What happens to the predictions (and prediction field) when $k$ gets larger? What happens to the predictions (and prediction field) when $k$ gets smaller?
+
+```{r}
+
+```
+
+## Tying It Back Together
+
+Use your best model specifications from OLS in a kNN regression. What happens? How can you tune the value of $k$ to get better performance?
+
+```{r}
+
+```
+
+There's are some *big* problems with trying to compare the performance of OLS and kNN in this way. What could they be?

@@ -1,0 +1,309 @@
+---
+title: "Problem Set 0"
+author: "Victoria Yan"
+format: html
+editor: visual
+---
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with:**
+
+## Part 1: Short Answers
+
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
+
+pivot_longer() turns columns into rows, while pivot_wider() turns rows into columns. pivot_longer() increases the number of observations and decreases the number of variables. pivot_wider decreases the number of observations and increases the number of variables.
+
+I might use pivot_longer() in a situation where I have multiple variables "POVSTATUS_XX" that indicate whether an individual was in poverty (1 for yes, 0 for no) in year 19XX, and I wanted to compare the values in the year prior and year after. In long-form, I could use the functions lead() and lag() to compare such values.
+
+I might use pivot_wider() when I want to view a numerical value by a certain category. For example, say I have 3 observations in the format of (Country, Year, Number of Smallpox cases): (China, 2011, 12), (China, 2012, 13), (China, 2013, 10). Say I want to view the total number of smallpox cases in China across 2011-2013. Then, I would pivot_wider() to a dataframe that looks like this:
+
+2011 2012 2013
+
+China 12 13 10
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+Some problems with this visualization:
+
+1.  The graphic is representing proportion as the area of a difficult-to-understand shape -- the United States of America.
+2.  It's unclear whether the shaded areas on the graph represent proportions from 1960, 2010, or 2060.
+3.  i.e. the chronological component of the visualization is not immediately apparent.
+4.  To the un-careful reader, "Other" and "Asian" are almost invisible categories.
+
+How I would fix it:
+
+Scrap the United States of America shape. I would visualize proportion over time with a continuous graph (i.e. line graph). It would not be as exciting of a graph, but it be clear and easy to understand. Alternatively, I would create three visualizations -- one for 1960, 2010, and 2060 respectively -- and include their respective proportions in each plot (i.e. histogram or stacked bar graph).
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
+
+```{r}
+#| include: false
+
+library(tidyverse)
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
+```
+
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+2.  Create new, dichotomized, versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
+
+```{r}
+#| echo: false
+
+# Write code for data cleaning here
+#Recoding 'gender' and 'region'
+d$gender <- as.character(d$gender)
+d <- d %>%
+  mutate(gender = recode(gender,
+                         '1' = 'Male',
+                         '2' = 'Female'))
+
+d$region <- as.character(d$region)
+d <- d %>%
+  mutate(region = recode(region,
+                         '1' = 'Northeast',
+                         '2' = 'Midwest',
+                         '3' = 'South',
+                         '4' = 'West'))
+
+#Recoding 'animalfight' variables to binary variables 
+#There is a more efficient way to do this... but I could not figure it out
+
+#Make 'animalfight' character variables so recode() can be applied 
+d[,28:42] <- lapply(d[,28:42], as.character)
+
+#Rote recoding
+d <- d %>%
+  mutate(animalfight1_1 = recode(animalfight1_1,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_2 = recode(animalfight1_2,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_3 = recode(animalfight1_3,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_4 = recode(animalfight1_4,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_5 = recode(animalfight1_5,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_6 = recode(animalfight1_6,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_7 = recode(animalfight1_7,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_8 = recode(animalfight1_8,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_9 = recode(animalfight1_9,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_10 = recode(animalfight1_10,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_11 = recode(animalfight1_11,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_12 = recode(animalfight1_12,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_13 = recode(animalfight1_13,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_14 = recode(animalfight1_14,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+d <- d %>%
+  mutate(animalfight1_15 = recode(animalfight1_15,
+                                 '1' = '1',
+                                 '2' = '0',
+                                 '3' = '0'))
+
+#Renaming 'animalfight' variables to 'd_animalname'
+#Create vector of new names
+new_names <- c('d_rat', 'd_housecat', 'd_meddog', 'd_largedog', 'd_kangaroo', 'd_eagle', 'd_bear', 'd_wolf', 'd_lion', 'd_gorilla', 'd_chimp', 'd_cobra', 'd_elephant', 'd_crocodile', 'd_goose')
+
+#Replace animalfight1_x with d_animalname
+d <- d %>%
+  rename_at(vars(starts_with('animalfight1')), ~ new_names)
+
+```
+
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+
+#| echo: false
+
+#Pivot data
+d_pivotL<- d %>%
+  pivot_longer(cols = starts_with("d_"),
+               names_to = "animal",
+               values_to = "versus")
+
+#Change "versus" to a numeric variable to calculate sum
+d_pivotL$versus <- as.numeric(d_pivotL$versus)
+
+#Sum the number of respondents who think they can beat each animal
+d_animalcount <- d_pivotL %>%
+  group_by(animal) %>%
+  summarize(versusmean = mean(versus))
+
+#Arrange table in ascending order (lowest to highest proportion who think they can win)
+table <- arrange(d_animalcount, versusmean)
+
+#Replace 'animal' column with vector of capitalized animal names
+table$animal <- c('Bear', 'Lion', 'Gorilla', 'Elephant', 'Crocodile', 'Wolf', 'Kangaroo', 'Cobra', 'Chimpanzee', 'Large dog', 'Eagle', 'Medium dog', 'Goose', 'House cat', 'Rat')
+
+#Rename table columns
+table <- rename(table, "Animal (Strongest to weakest)" = animal)
+table <- rename(table, "Proportion of Respondents who think they can win" = versusmean)
+
+#Here is the table!
+print(table)
+```
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 1 here
+#Create d_regioncount with columns for region, total number of yes responses to animalfight questions, and proportion of yes responses in a given region
+d_regioncount <- d_pivotL %>%
+  group_by(region) %>%
+  summarize(n = n()) %>%
+  mutate(prop = n / sum(n))
+
+#Create plot
+ggplot(d_regioncount, aes(x = region, y = prop, fill = region)) +
+  geom_col() +
+  ggtitle("Confidence in Winning Fights by Region") +
+  labs(x = "Region", 
+       y = "Proportion of Yes responses*",
+       caption = "*Proportion of Yes responses is the number of animalfight questions a respondent of any region
+       answered 'Yes' to divided by the total number of animalfight questions asked.
+       i.e. Higher proportion of Yes responses = Higher confidence in winning fights")
+  
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 2 here
+#Create d_agecount with columns for age,total number of yes responses to animalfight questions by age, and proportion of yes responses for a given age
+d_agecount <- d_pivotL %>%
+  group_by(age) %>%
+  summarize(n = n()) %>%
+  mutate(prop = n / sum(n))
+
+#Create plot
+ggplot(d_agecount, aes(x = age, y = prop)) +
+  geom_point() +
+  ggtitle("Confidence in Winning Fights by Respondent Age") +
+  labs(x = "Age",
+       y = "Proportion of Yes responses*",
+       caption = "*Proportion of Yes responses is the number of animalfight questions a respondent of any age
+       answered 'Yes' to divided by the total number of animalfight questions asked.
+       i.e. Higher proportion of Yes responses = Higher confidence in winning fights") +
+       geom_smooth(method = lm, formula = y ~ poly(x, 2), se = FALSE) 
+
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 3 here
+#Create d_educcount with columns for highest education attained, gender, and frequency of yes rseponses
+d_educcount <- d_pivotL %>%
+  group_by(educ, gender) %>%
+  summarize(n = n())
+
+#Recode numerical educ values to their corresponding string labels
+d_educcount$educ <- as.character(d_educcount$educ)
+d_educcount <- d_educcount %>%
+  mutate(educ = recode(educ,
+                       '1' = 'No HS',
+                       '2' = 'High school grad',
+                       '3' = 'Some college',
+                       '4' = '2-year college',
+                       '5' = '4-year college',
+                       '6' = 'Post-grad'))
+
+#Create vector to order x-axis categories
+order <- c('No HS', 'High school grad', 'Some college', '2-year college', '4-year college', 'Post-grad')
+
+#Craete plot
+ggplot(d_educcount, aes(x = educ, y = n, fill = gender)) +
+  geom_col(stat = "identity", position = "dodge") +
+  scale_x_discrete(limits = order) + 
+  ggtitle("Confidence in Winning Fights by Educational Attainment and Gender") + 
+  labs(x = "Highest Education Attained",
+       y = "Number of Yes responses*",
+       caption = "*Number of Yes responses is the number of animalfight questions
+       a respondent of any highest education attained answered 'Yes' to.
+       i.e. Higher proportion of Yes responses = Higher confidence in winning fights")
+```

@@ -1,0 +1,237 @@
+---
+title: "Making Plots"
+author: "Klint Kanopka"
+format: html
+editor: visual
+---
+
+```{r}
+
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(learningtower)
+library(viridis)
+
+
+d <- load_student(year = c(2012)) |> 
+  select(-stu_wgt)
+
+set.seed(1337)
+
+d_split <- d |> 
+  select(-c("year", "school_id", "student_id")) |> 
+  na.omit() |> 
+  initial_split(prop=0.8) 
+
+d_folds <- vfold_cv(training(d_split), v=10) 
+
+lasso_recipe <- recipe(math ~ ., data=training(d_split)) |> 
+  step_normalize(all_numeric_predictors()) |> 
+  step_dummy(all_nominal_predictors())
+
+penalty_grid <- 10^seq(-3, 0, length.out = 50)
+
+lasso_model <- linear_reg(penalty=tune(), 
+                          mixture=1) |> 
+  set_engine('glmnet', path_values=penalty_grid)
+
+lasso_workflow <- workflow() |> 
+  add_model(lasso_model) |> 
+  add_recipe(lasso_recipe)
+
+get_lasso_coefs <- function(x) {
+  x |>
+    extract_fit_engine() |> 
+    tidy(return_zeros = TRUE) |>  
+    rename(penalty = lambda)
+}
+
+parsnip_ctrl <- control_grid(extract=get_lasso_coefs,
+                             save_pred=TRUE)
+
+tuned_lasso <- lasso_workflow |> 
+  tune_grid(d_folds,
+            grid=data.frame(penalty=penalty_grid),
+            metrics = metric_set(rmse), 
+            control = parsnip_ctrl)
+```
+
+## Plot 1:
+
+```{r}
+
+d_plot1 <- collect_metrics(tuned_lasso)
+
+d_plot1
+```
+
+```{r}
+
+ggplot(d_plot1, aes(x = penalty, 
+                    y = mean, 
+                    ymin = mean-1.96*std_err,
+                    ymax = mean + 1.96*std_err)) +
+  geom_line(color='darkorchid') +
+  geom_ribbon(fill='darkorchid', alpha=0.3) + 
+  labs(x = 'LASSO Penalty',
+       y = 'Cross-Validated RMSE') +
+  theme_bw()
+```
+
+```{r}
+
+ggplot(d_plot1, aes(x = penalty, 
+                    y = mean, 
+                    ymin = mean-1.96*std_err,
+                    ymax = mean + 1.96*std_err)) +
+  geom_point(color='darkgreen') +
+  geom_errorbar(width=0, color='darkgreen') + 
+  labs(x = 'LASSO Penalty',
+       y = 'Cross-Validated RMSE') +
+  theme_bw()
+```
+
+## Plot 2:
+
+```{r}
+
+lasso_extract_vars <- function(tuned_reg){
+  require(tidyverse)
+  require(tidymodels)
+  tuned_reg |> 
+    select(id, .extracts) |> 
+    unnest(.extracts) |> 
+    select(id, .extracts) |> # throw out redundant columns
+    group_by(id) |> 
+    slice(1) |> # throw out repeated data
+    ungroup() |> 
+    unnest(.extracts) |> 
+    filter(estimate != 0) |> # throw out variables that are constrained to zero
+    group_by(step) |> # group by penalty values
+    summarize(penalty=mean(penalty), # grab the penalty value for the group
+              n_retained = n()/10) |> # average # of variables across folds
+    left_join(collect_metrics(tuned_reg), by='penalty') # join to eval metrics
+}
+
+d_plot2 <- lasso_extract_vars(tuned_lasso)
+
+d_plot2
+```
+
+```{r}
+
+ggplot(d_plot2, aes(x = penalty,
+                    y = n_retained)) +
+  geom_line(color='firebrick4') +
+  labs(x = 'LASSO Penalty',
+       y = 'Mean Number of Variables Retained') +
+  theme_bw()
+```
+
+```{r}
+
+ggplot(d_plot2, aes(x = penalty,
+                    y = n_retained,
+                    color = mean)) +
+  geom_point() +
+  labs(x = 'LASSO Penalty',
+       y = 'Mean Number of Variables Retained',
+       color = 'RMSE') +
+  scale_color_viridis() +
+  theme_bw()
+```
+
+## Plot 3:
+
+```{r}
+
+best_rmse <- select_best(tuned_lasso, metric='rmse')
+
+final_lasso <- lasso_workflow |> 
+  finalize_workflow(best_rmse) |> 
+  last_fit(d_split)
+
+d_pred_train <- collect_predictions(tuned_lasso, 
+                                    parameters=best_rmse) |>
+  select(math, .pred) |> 
+  mutate(type='training')
+
+d_pred_test <- collect_predictions(final_lasso)|> 
+  select(math, .pred) |> 
+  mutate(type='test')
+
+d_plot3 <- bind_rows(d_pred_train, d_pred_test)
+
+d_plot3
+
+```
+
+```{r}
+ggplot(d_plot3, aes(x = .pred-math, 
+                    color = type,
+                    fill = type)) +
+  geom_density(alpha = 0.25) +
+  scale_color_manual(values = c('training' = 'dodgerblue1',
+                                'test' = 'firebrick1')) +
+  scale_fill_manual(values = c('training' = 'dodgerblue1',
+                               'test' = 'firebrick1')) +
+  labs(x = 'Prediction Error',
+       color = NULL,
+       fill = NULL) +
+  theme_bw()
+```
+
+```{r}
+
+ggplot(d_plot3, aes(x = math, 
+                    y = .pred, 
+                    color = type)) +
+  geom_point() +
+  labs(x = 'Math Score',
+       y = 'Model Predicted Math Score',
+       color = NULL) +
+  theme_bw()
+```
+
+```{r}
+
+ggplot(d_plot3, aes(x = math, 
+                    y = .pred, 
+                    color = type)) +
+  geom_abline(aes(intercept=0, slope=1), lty=2, alpha=0.6) +
+  geom_point() +
+  scale_color_viridis_d() +
+  labs(x = 'Math Score',
+       y = 'Model Predicted Math Score',
+       color = NULL) +
+  theme_bw()
+```
+
+```{r}
+
+ggplot(d_plot3, aes(x = math, 
+                    y = .pred, 
+                    color = type)) +
+  geom_point(alpha = 0.1) +
+  geom_abline(aes(intercept=0, slope=1), lty=2, alpha=0.6) +
+  scale_color_manual(values = c('training' = 'dodgerblue1',
+                                'test' = 'firebrick1')) +
+  labs(x = 'Math Score',
+       y = 'Model Predicted Math Score',
+       color = NULL) +
+  theme_bw()
+```
+
+```{r}
+ggplot(d_plot3, aes(x = math, 
+                    y = .pred-math, 
+                    color = type)) +
+  geom_density_2d() +
+  scale_color_manual(values = c('training' = 'dodgerblue1',
+                                'test' = 'firebrick1')) +
+  labs(x = 'Math Score',
+       y = 'Prediction Error',
+       color = NULL) +
+  theme_bw()
+```

@@ -1,0 +1,235 @@
+---
+title: "Lab 4.2"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(tidymodels)
+```
+
+## Overfitting and Extrapolation
+
+Let's start with simulated data:m1 \<- lm(y \~ x, d)
+
+```{r}
+
+set.seed(31337)
+d <- data.frame(x = rnorm(5),
+                y = rnorm(5),
+                type = 'data')
+```
+
+There's no real relationship here:
+
+```{r}
+
+ggplot(d, aes(x=x, y=y)) +
+  geom_point() +
+  theme_bw()
+```
+
+```{r}
+m1 <- lm(y ~ x, d)
+
+pred <- data.frame(x=seq(-3, 3, length.out=500),
+                 type='model')
+
+pred$y <- predict(m1, newdata=pred)
+
+bind_rows(d, pred) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+m2 <- lm(y ~ I(x^2) + x, d)
+
+pred$y <- predict(m2, newdata=pred)
+
+bind_rows(d, pred) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+m3 <- lm(y ~ I(x^3) + I(x^2) + x, d)
+
+pred$y <- predict(m3, newdata=pred)
+
+bind_rows(d, pred) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+m2 <- lm(y ~ I(x^4) + I(x^3) + I(x^2) + x, d)
+
+pred$y <- predict(m2, newdata=pred)
+
+bind_rows(d, pred) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+## What about visualizing with more variables?
+
+```{r}
+set.seed(31337)
+d <- data.frame(
+  x = rnorm(500),
+  z = rnorm(500),
+  type='data') |> 
+  mutate(y = 0.2*x^2 - 0.6*x - 0.7*z + 0.4 + rnorm(500))
+
+ggplot(d, aes(x = x, y = y, color=z)) +
+  geom_point() + 
+  scale_color_viridis() +
+  theme_bw()
+
+ggplot(d, aes(x = z, y = y, color=x)) +
+  geom_point() + 
+  scale_color_viridis() +
+  theme_bw()
+
+```
+
+```{r}
+m <- lm(y ~ I(x^2) + x + I(z^2) + z, data=d)
+summary(m)
+```
+
+```{r}
+pred_x <- data.frame(x=seq(-3, 3, length.out=500),
+                   z=mean(d$z),
+                   type='model')
+pred_x$y <- predict(m, newdata=pred_x)
+
+bind_rows(d, pred_x) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+pred_z <- data.frame(z=seq(-3, 3, length.out=500),
+                     x=mean(d$x),
+                     type='model')
+pred_z$y <- predict(m, newdata=pred_z)
+
+bind_rows(d, pred_z) |> 
+  ggplot(aes(x=z, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+pred_xz <- expand.grid(x=seq(-3, 3, length.out=500),
+                       z=seq(-3, 3, length.out=500))
+pred_xz$type <- 'model'
+
+pred_xz$y <- predict(m, newdata=pred_xz)
+
+ggplot(pred_xz, aes(x=x, y=z, fill=y)) + 
+  geom_tile() + 
+  scale_fill_viridis() +
+  theme_bw()
+```
+
+## GLMs in Tidymodels
+
+Here's a reference for the `mgcv` interface in `tidymodels`: [documentation](https://parsnip.tidymodels.org/reference/details_gen_additive_mod_mgcv.html)
+
+```{r}
+library(mgcv)
+
+gam_spec <- gen_additive_mod() |> 
+  set_engine("mgcv") |> 
+  set_mode("regression")
+
+gam_workflow <- workflow() |> 
+  add_variables(outcomes = c(y), 
+                predictors = c(x,z)) |> 
+  add_model(gam_spec, formula = y ~ s(x) + s(z))
+
+gam_fit <- fit(gam_workflow, data=d)
+```
+
+```{r}
+pred_x <- data.frame(x=seq(-3, 3, length.out=500),
+                   z=mean(d$z),
+                   type='model')
+
+pred_x <- bind_cols(pred_x, predict(gam_fit, new_data=pred_x)) |> 
+  rename(y = .pred)
+
+bind_rows(d, pred_x) |> 
+  ggplot(aes(x=x, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+pred_z <- data.frame(z=seq(-3, 3, length.out=500),
+                     x=mean(d$x),
+                     type='model')
+
+pred_z <- bind_cols(pred_z, predict(gam_fit, new_data=pred_z)) |> 
+  rename(y = .pred)
+
+bind_rows(d, pred_z) |> 
+  ggplot(aes(x=z, y=y, size=type, color=type)) + 
+  geom_point() + 
+  scale_color_manual(values=c('data'='black', 
+                              'model'='red')) +
+  scale_size_manual(values=c('data'=2,
+                             'model'=0.1)) +
+  theme_bw()
+```
+
+```{r}
+pred_xz <- expand.grid(x=seq(-3, 3, length.out=500),
+                       z=seq(-3, 3, length.out=500))
+
+pred_xz <- bind_cols(pred_xz, predict(gam_fit, new_data=pred_xz))
+
+ggplot(pred_xz, aes(x=x, y=z, fill=.pred)) +
+  geom_tile() +
+  scale_fill_viridis() +
+  coord_equal() +
+  theme_bw()
+```

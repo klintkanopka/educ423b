@@ -1,0 +1,221 @@
+---
+title: "Problem Set 0"
+author: "Alysson Farris"
+format: html
+editor: visual
+---
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with: No one**
+
+## Part 1: Short Answers
+
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
+
+pivot_longer() makes it so that there is a variable for the context of when the other variables were collected, and there's a row for each participant in each of these contexts. Usually, the context is something related to time (e.g. wave, year, age), and there are consistent intervals for which each participant should have an entry (e.g. waves 1, 2 and 3; ages 6 months, 12 months, and 18 months; or fall, winter, and spring). In longer data, there are more observations and fewer variables.
+
+pivot_wider() creates a single row for every unique participant in the dataset. The context variable is then usually appended to the other variables in the dataset. For instance, if you have data on test scores of children for fall and winter, pivot_wider() could make a row for each unique child and two variables, score_fall and score_spring, for their scores. This creates fewer observations but more variables.
+
+Pivot-wider is preferable for creating models. It also works better for calculating differences between variables (e..g growth between fall and spring semester).
+
+Longer data might be better if you want to filter out a large number of observations. For example, if you're only interested in observations from 2014, you could filter by year == "2014". I think longer data also works better for the summarize function.
+
+Answer here
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+This infographic is supposed to be a stacked area chart showing how the proportions of races/ethnicities have changed over time in the U.S.: white people have become a smaller and smaller share of the population, and hispanic, Asian, and other identities have increased their shares.
+
+This chart is poor because
+
+1.  It does not account for the fact that the population has grown over time, so the number of people in all races and ethnicities has grown since 1960. This chart could give a viewer the impression that the number of white people has decreased, which is not the case.
+2.  They put this chart on a map of the Unites States, which is not a uniform height across its width. Every point horizontally on this chart should represent the proportions of races/ethnicities at each year. However, the space from the Gulf of Mexico to Lake Michigan is not the same height as the space from the southernmost tip of Florida to Maine. You can't even see the growing areas for Asian and Hispanic over time because there isn't U.S. land west of Maine and north of NY, MI, and WI.
+3.  Overlaying the areas on a map of the U.S. might also give the viewer the impression that these areas have something to do with the states they're coloring. For example, a viewer might see that red represents the white population and that Alaska and Hawaii are all red, so they might be confused about the relationship there.
+4.  I think it should be more clear when the chart moves from visualizing the past/present to predicting the future. The chart goes from 1960 to 2060, and it's not clear what year the chart was made. Presumably, it was made in 2010, but we don't know that for sure, and it should be more clear that the numbers for 2060 are projections.
+
+To fix this chart, I would create an area chart that is not overlayed onto the U.S. I would add a line indicating the border where the numbers turn into predictions. Also, it would be better if the sum of the areas at each point represented the population size, instead of 100%, because then the total area could grow over time.
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
+
+```{r}
+#| include: false
+
+library(tidyverse)
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
+
+library(labelled)
+```
+
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+2.  Create new, dichotomized, versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
+
+```{r}
+#| echo: false
+look_for(d)
+names(look_for(d))
+
+d$gender <- ifelse(d$gender == 1, "Male", "Female")
+d$region <- ifelse(d$region == 1, "Northeast", 
+                   ifelse(d$region == 2, "Midwest", 
+                          ifelse(d$region == 3, "South",
+                                 ifelse(d$region == 4, "West", NA_character_))))
+
+```
+
+```{r}
+look_for(d)$variable
+look_for(d)$label
+
+animalfight_vars <- paste0("animalfight1_", c(1:15))
+
+for (var in animalfight_vars) {
+  new_var <- tolower(str_replace_all(paste0("d_", var_label(d)[[var]]), " ", ""))
+  d[, new_var] <- ifelse(d[, var] == 1, 1, 0)
+}
+```
+
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+#| echo: false
+d_long <- d |>
+  select(RecordNo, age, gender, region, race, educ, starts_with("d_")) |>
+  pivot_longer(cols = c(starts_with("d_")),
+               names_to = "animal",
+               values_to = "win")
+
+proportions <- d_long |>
+  group_by(animal) |>
+  summarise(prop_win = mean(win))
+
+proportions <- proportions[order(proportions$prop_win),]
+proportions$rank <- rank(proportions$prop_win)
+head(proportions, n = 15L)
+```
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+regions_wins <- d_long |>
+  group_by(RecordNo, region) |>
+  summarise(could_win = mean(win),
+            num_wins = sum(win))
+
+
+ggplot(data = regions_wins) +
+  geom_boxplot(mapping = aes(y = num_wins, fill = region)) +
+  facet_wrap(~ region, ncol = 4) +
+  labs(title = "Geographic Regions' Confidence in Winning Fights with Animals",
+       subtitle = "Regions have roughly similar means, but the Northeast has the highest 3rd quartile",
+      y = "Number of Animals Participant Says They Could Win Against",
+      fill = "Region") +
+  
+    theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+      panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(size = 12,
+                                  face= "bold",
+                                  color = "#006D77"),
+        plot.subtitle=element_text(size = 10,
+                                   color="#6c757d"),
+        legend.text = element_text(color = "#6c757d"))
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+# lm_age = lm(win~age + factor(RecordNo), data = d_long)
+lm_age = lm(win~age, data = d_long)
+summary(lm_age)
+
+could_win <- d_long |>
+  group_by(RecordNo, age) |>
+  summarise(could_win = mean(win),
+            num_wins = sum(win))
+
+lm_prop_wins_age = lm(could_win~age, data = could_win)
+summary(lm_prop_wins_age)
+lm_num_wins_age = lm(num_wins~age, data = could_win)
+summary(lm_num_wins_age)
+
+ggplot(could_win, aes(x = age, y = num_wins)) +
+  geom_point(position = position_jitter(seed = 1, width = 0.2)) +
+  geom_smooth(method=lm) +
+  theme(legend.position = "none") +
+    labs(title = "Relationship between age and confidence in winning fights",
+         subtitle = "Older participants are slightly less confident in their ability to win fights against animals",
+      x = "Age",
+      y = "Number of Animals Participant Says They Can Beat") +
+  
+    theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(size = 12,
+                                  face= "bold",
+                                  color = "#006D77"),
+        plot.subtitle=element_text(size = 10,
+                                   color="#6c757d"))
+
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+library(ggbeeswarm)
+
+educ_gender <- d_long |>
+  group_by(RecordNo, educ, gender) |>
+  summarise(could_win = mean(win),
+            num_wins = sum(win))
+
+educ_gender$educ <- factor(educ_gender$educ, 
+                          levels = c(1:6),
+                          labels = c("No H.S.", "High school graduate", "Some college", "2-year", "4-year", "Post-grad"))
+
+
+ggplot(educ_gender, aes(x = factor(educ), y = num_wins, color = factor(educ))) +
+  geom_boxplot() +
+  facet_wrap(~ gender, ncol = 2) +
+  geom_beeswarm(cex = .1) +
+  geom_quasirandom() +
+  geom_jitter(alpha = .2) +
+    labs(title = "Confidence in Winning Fights with Animals by Education Level and Gender",
+       subtitle = "Lower education level is associated with slightly lower confidence, and men seem to be more confident",
+      y = "Number of Animals Participant Says They Could Win Against",
+      color = "Education") +
+  
+    theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x = element_blank(),
+      panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(size = 12,
+                                  face= "bold",
+                                  color = "#006D77"),
+        plot.subtitle=element_text(size = 10,
+                                   color="#6c757d"),
+        legend.text = element_text(color = "#6c757d"))
+```

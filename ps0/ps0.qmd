@@ -7,27 +7,79 @@ editor: visual
 
 ## Instructions
 
-Answer the questions directly in this document. Please include all code and output in this document. To submit, upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you consulted, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
 
 **I worked with:**
 
-## Short Answers
+## Part 1: Short Answers
 
-## Working With Data
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+Answer here
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+Answer here
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
 
 ```{r}
-import(tidyverse)
+#| include: false
 
-d <- 
+library(tidyverse)
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
 ```
 
-You can add options to executable code like this
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+2.  Create new, dichotomized, versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
 
 ```{r}
 #| echo: false
-2 * 2
+
+# Write code for data cleaning here
+
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+#| echo: false
+```
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 1 here
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 2 here
+
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 3 here
+
+```

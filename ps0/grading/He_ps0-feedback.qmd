@@ -1,0 +1,215 @@
+---
+title: "Problem Set 0"
+author: "Angela He"
+format: html
+editor: visual
+---
+
+> Hey Angela! Great job. As for code stuff, I only made two small comments below, one about using line breaks to improve readability and another about the ordering of items in a table. I really liked your use of color, labels, and age binning to produce really effective bar charts. Well done!
+>
+> Grade: 5/5
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with:**
+
+## Part 1: Short Answers
+
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
+
+Pivot_longer() makes a dataframe longer by increasing the number of rows and decreasing the number of columns. Pivot_longer() is useful for analyzing the data through a computer program since each response has its own row. Pivot_wider() does the opposite of pivot_longer()--it makes a dataframe shorter by decreasing the number of rows and increasing the number of columns. It can be used when you want to quickly understand what the data is communicating. For instance, it can show the averages of different attributes by year in the columns.
+
+> Another key note here is that `ggplot()` requires long form data
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+This infographic is difficult to understand because it plots the data points on a map of the U.S., which leads the audience to expect that the data points correspond to each region on the map. However, the infographic does not actually show the U.S. population change by region but rather the U.S. as a whole. Additionally, it is confusing because the year labels are above different regions of the U.S., which makes it seem as if each region of the U.S. has a different year associated with it. I would fix the infographic by eliminating the map of the U.S. and using a simple line plot instead. The line plot would have different colored lines for each race/ethnicity, an x-axis with the year, and the y-axis with the population percentage.
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
+
+```{r}
+#| include: false
+
+library(tidyverse)
+library(labelled)
+library(sjlabelled)
+
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
+```
+
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+
+2.  Create new, dichotomized, versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
+
+    \*\*\*I recoded the variables differently to fit the goal of each data visualization/chart. The variables are coded differently for the chart in Part 2 chart and then for the data visualizations in Part 3. This made the most sense for my data visualizations/chart, as you will see below.
+
+    > This is totally fine and absolutely makes sense. I will add one thing - if you use line breaks carefully, you can often make some easier to read code. Check out what I did below. Maybe you like it better? If not, feel free to ignore!
+
+```{r}
+#| echo: false
+
+# Write code for data cleaning here
+d <- d|>
+  mutate(gender=factor(gender)) |>
+  mutate(gender = case_when(gender=="1"~"male", 
+                            gender=="2"~"female")) |>
+  mutate(region=factor(region)) |>
+  mutate(region = case_when(region=="1"~"Northeast", 
+                            region=="2"~"Midwest", 
+                            region=="3"~"South", 
+                            region=="4"~"West"))
+```
+
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+#| echo: false
+d_pivoted <- d|>
+pivot_longer('animalfight1_1':'animalfight1_15', names_to="animal", values_to="prob_win")
+
+#keep relevant variables only
+d_pivoted <- d_pivoted |>
+  select(animal, prob_win, region, age, gender, educ)
+
+#recode animal names
+d_pivoted<- d_pivoted|>
+    mutate(animal = case_when(animal=="animalfight1_1"~"Rat", animal=="animalfight1_2"~"House cat", animal=="animalfight1_3"~"Medium sized dog", animal=="animalfight1_4"~"Large dog", animal=="animalfight1_5"~"Kangaroo", animal=="animalfight1_6"~"Eagle", animal=="animalfight1_7"~"Grizzly bear", animal=="animalfight1_8"~"Wolf", animal=="animalfight1_9"~"Lion", animal=="animalfight1_10"~"Gorilla", animal=="animalfight1_11"~"Chimpanzee", animal=="animalfight1_12"~"King Cobra", animal=="animalfight1_13"~"Elephant", animal=="animalfight1_14"~"Crocodile", animal=="animalfight1_15"~"Goose"))
+                              
+#convert prob_win to numeric variable
+d_pivoted <- d_pivoted |>
+   mutate(prob_win=as.numeric(prob_win)) 
+
+```
+
+```{r}
+#create variable for total number of respondents that answered the whether they could win question for each animal
+d_pivoted_2 <- d_pivoted |>
+group_by(animal) |>
+mutate(count_prob_total=sum(prob_win)) |>
+#create variable for just respondents that think they could win for each animal
+mutate(count_prob_win=sum(prob_win=="1")) |>
+mutate(count_prob_win=as.numeric(count_prob_win)) |>
+#create variable for porportion of respondents that think they could win for each animal
+mutate(proportion=count_prob_win / count_prob_total) |>
+#ungroup data to prevent future errors!
+ungroup()
+
+#create table
+d_pivoted_2 |>
+select(animal, proportion) |>
+distinct() |>
+arrange(desc(proportion)) |>
+knitr::kable(col.names = c('Animal', 'Proportion of Respondents'), caption='Proportion of Respondents Who Think They Could Win Against an Animal in a Fight', format='markdown')
+```
+
+> I asked for the animals to go from strongest to weakest, so you should drop the `desc()`
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+d_pivoted_v <- d_pivoted |>
+#get rid of respondents who answered "I don't know"
+filter(!prob_win=="3")
+
+#order variable to create confidence in winning scale
+d_pivoted_v <- d_pivoted |>
+mutate(prob_win_reordered = case_when(prob_win=="2"~"0", prob_win=="1"~"1")) |>
+mutate(prob_win_reordered=as.numeric(prob_win_reordered))
+  
+#create graph
+d_pivoted_v|>
+  group_by(region) |>
+  summarize(n_region=n(),
+            sum_prob_win_reordered = sum(prob_win_reordered, na.rm = TRUE)) |>
+  na.omit() |>
+  ungroup() |>
+  mutate(percentage_prob_win = (sum_prob_win_reordered*100) / n_region) |>
+  ggplot() + geom_col(aes(x = region, y = percentage_prob_win,
+                        fill=factor(ifelse(region=="South","Highlighted","Normal")))) + ggtitle("Confidence in Ability to Win Fights With Animals by Geographic Region") + xlab("Region") + ylab("") +  scale_y_continuous(labels = scales::percent_format(scale = 1)) + scale_fill_manual(name = "South", values=c("red","grey50")) + theme(legend.position = "none")
+
+
+
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+#| echo: false
+#bin age into age groups
+d_pivoted_v |>
+mutate(
+    # Create age groups
+    age_group = dplyr::case_when(
+      age <= 25            ~ "18-25",
+      age > 25 & age <= 35 ~ "26-35",
+      age > 35 & age <= 45 ~ "36-45",
+      age > 45 & age <= 55 ~ "46-55",
+      age > 55 & age <= 65 ~ "56-65",
+      age > 65 & age <= 75 ~ "66-75",
+      age > 75             ~ "76+"
+    ),
+    # Convert to factor
+    age_group = factor(
+      age_group,
+      level = c("18-25", "26-35","36-45", "46-55", "56-65", "66-75", "76+"))) |>
+
+#create visualization
+  group_by(age_group) |>
+  summarize(n_age_group=n(),
+            sum_prob_win_reordered = sum(prob_win_reordered, na.rm = TRUE)) |>
+  na.omit() |>
+  ungroup() |>
+  mutate(percentage_prob_win = (sum_prob_win_reordered*100) / n_age_group) |>
+  ggplot() + geom_col(aes(x = age_group, y = percentage_prob_win, fill=factor(ifelse(age_group=="18-25","Highlighted","Normal")))) + ggtitle("Confidence in Ability to Win Fights With Animals by Age Group") + xlab("Age Group") + ylab("") +  scale_y_continuous(labels = scales::percent_format(scale = 1)) + scale_fill_manual(name = "18-25", values=c("red","grey50")) + theme(legend.position = "none")
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+#label education levels
+d_pivoted_v <- d_pivoted_v |>
+mutate(educ=factor(educ)) |>
+mutate(educ = case_when(educ=="1"~"No high school", educ=="2"~"High school graduate", educ=="3"~"Some college", educ=="4"~"Associate degree", educ=="5"~"Bachelor's degree", educ=="6"~"Post-grad"))
+#order education levels
+d_pivoted_v$educ_ordered <- factor(d_pivoted_v$educ, levels=c("No high school","High school graduate", "Some college", "Associate degree", "Bachelor's degree","Post-grad"))
+  
+#visualization examining just the relationship between confidence in winning fights and educational attainment
+d_pivoted_v |>
+  group_by(educ) |>
+  summarize(n_educ=n(),
+            sum_prob_win_reordered = sum(prob_win_reordered, na.rm = TRUE)) |>
+  na.omit() |>
+  ungroup() |>
+  mutate(percentage_prob_win = (sum_prob_win_reordered*100) / n_educ) |>
+  ggplot() + geom_col(aes(x = educ, y =percentage_prob_win, fill=factor(ifelse(educ=="No high school","Highlighted","Normal")))) + ggtitle("Confidence in Ability to Win Fights With Animals by Education Level") + xlab("Education level") + ylab("") +  scale_y_continuous(labels = scales::percent_format(scale = 1)) + scale_fill_manual(name = "No high school", values=c("red","grey50")) + theme(legend.position = "none")
+
+```
+
+```{r}
+#graph examining the relationship between confidence in winning fights and educational attainment *and* variation by gender
+#attempt 2
+d_pivoted_v |>
+  group_by(educ, gender) |>
+  summarize(n_educ=n(),
+            sum_prob_win_reordered = sum(prob_win_reordered, na.rm = TRUE)) |>
+  na.omit() |>
+  ungroup() |>
+  mutate(percentage_prob_win = (sum_prob_win_reordered*100) / n_educ) |>
+  ggplot(aes(x = educ, y =percentage_prob_win, fill=gender)) + geom_bar(position="dodge", stat="identity") + ggtitle("Confidence in Ability to Win Fights With Animals by Education Level and Gender") + xlab("Education level") + ylab("") +  scale_y_continuous(labels = scales::percent_format(scale = 1))
+```

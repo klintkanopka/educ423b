@@ -1,0 +1,231 @@
+---
+title: "Problem Set 0"
+author: "Dorna Abdi"
+format: html
+editor: visual
+---
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with:**
+
+## Part 1: Short Answers
+
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
+
+Pivot Longer is when you consolidate multiple columns and transfer those values into rows. Pivot longer is a helpful tool to compare data points. When we were evaluating the missing data in in the 423a group project, we noticed that there were multiple missing data codes (missing in wave, refused, and don't know). I pivoted the data longer in order to filter out the non-missing data compare all of the missing data points.
+
+Pivot wider is when you consolidate multiple rows and transfer those values into columns, thus making it wider. Pivot wider is really nice for organizing data into separate columns to summarize it into tables and build a good overview for the data.
+
+Answer here
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+Answer
+
+The overall issue with this infographic is that the data overlays over the U.S. map in a misleading manner. This graphic makes it seem that the west is in the past and the east is in the future. I didn't know our the difference in our time zones spanned a hundred years. Furthermore, it makes it seem that the southern population of the U.S is white and that the Asian population only live in the northwest and the north east corners of the country. In other words, it this infographic makes it seem that the country is segregated laterally.
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
+
+```{r}
+install.packages("timechange")
+library(timechange)
+```
+
+```{r}
+#| include: false
+library(tidyverse)
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
+```
+
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+2.  Create new, dichotomized, versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
+
+summary(d)
+
+```{r}
+#| echo: false
+
+# sort(unique(d$gender))
+# sort(unique(d$region))
+# sort(unique(d$animalfight1_1))
+
+# Write code for data cleaning here
+#label gender/region responses as strings
+d$gender = factor(d$gender, 
+                  levels = c(1,2), 
+                  labels = c("male", "female"))
+
+d$region = factor(d$region, 
+                  levels = c(1,2, 3, 4), 
+                  labels = c("northeast", "midwest", "south", "west"))
+
+d$educ = factor(d$educ, 
+                  levels = c(1,2, 3, 4, 5, 6), 
+                  labels = c("No HS", "High school graduate", "Some college", "2-year", "4-year", "Post-grad"))
+
+#dichotomized responses
+d_animals <- d %>% 
+  select(RecordNo, age, gender, educ, region, animalfight1_1, animalfight1_2, animalfight1_3, animalfight1_4, animalfight1_5, animalfight1_6, animalfight1_7, animalfight1_8, animalfight1_9, animalfight1_10, animalfight1_11, animalfight1_12, animalfight1_13, animalfight1_14, animalfight1_15) |>
+  mutate(d_rat = case_when(animalfight1_1 > 1 ~ 0, 
+                           animalfight1_1 == 1 ~ 1)) |>
+  
+  mutate(d_houseCat = case_when(animalfight1_2 > 1 ~ 0, 
+                           animalfight1_2 == 1 ~ 1)) |>
+  
+  mutate(d_mediumSizedDog = case_when(animalfight1_3 > 1 ~ 0, 
+                           animalfight1_3 == 1 ~ 1)) |>
+  
+  mutate(d_largeDog = case_when(animalfight1_4 > 1 ~ 0, 
+                           animalfight1_4 == 1 ~ 1)) |>
+  
+  mutate(d_kangaroo = case_when(animalfight1_5 > 1 ~ 0, 
+                           animalfight1_5 == 1 ~ 1)) |>
+  
+  mutate(d_kangaroo = case_when(animalfight1_5 > 1 ~ 0, 
+                           animalfight1_5 == 1 ~ 1)) |>
+  
+  mutate(d_eagle = case_when(animalfight1_6 > 1 ~ 0, 
+                           animalfight1_6 == 1 ~ 1)) |>
+  
+  mutate(d_grizzlyBear = case_when(animalfight1_7 > 1 ~ 0, 
+                           animalfight1_7 == 1 ~ 1)) |>
+  
+  mutate(d_wolf = case_when(animalfight1_8 > 1 ~ 0, 
+                           animalfight1_8 == 1 ~ 1)) |>
+  
+  mutate(d_lion = case_when(animalfight1_9 > 1 ~ 0, 
+                           animalfight1_9 == 1 ~ 1)) |>
+  
+  mutate(d_gorilla = case_when(animalfight1_10 > 1 ~ 0, 
+                           animalfight1_10 == 1 ~ 1)) |>
+  
+  mutate(d_chimpanzee = case_when(animalfight1_11 > 1 ~ 0, 
+                           animalfight1_11 == 1 ~ 1)) |>
+  
+  mutate(d_kingCobra = case_when(animalfight1_12 > 1 ~ 0, 
+                           animalfight1_12 == 1 ~ 1)) |>
+  
+  mutate(d_elephant = case_when(animalfight1_13 > 1 ~ 0, 
+                           animalfight1_13 == 1 ~ 1)) |>
+  
+  mutate(d_crocodile = case_when(animalfight1_14 > 1 ~ 0, 
+                           animalfight1_14 == 1 ~ 1)) |>
+  
+  mutate(d_goose = case_when(animalfight1_15 > 1 ~ 0, 
+                           animalfight1_15 == 1 ~ 1))
+  
+#check
+#sort(unique(d_animals$d_goose))
+#colnames(d_animals)
+
+
+```
+
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+#| echo: false
+d_longer <- d_animals |>
+  pivot_longer(cols = starts_with("d_"), 
+  names_to = "animal", 
+  values_to = "response"
+)
+
+class(d_longer$response)
+d_prop <- d_longer |>
+  select(RecordNo, age, educ, gender, region, animal, response) |>
+  filter(response == '1' )
+
+#I ordered it with the reasoning that the strongest animal is the one that people indicated to be less likely to fight
+animal_table <- prop.table(table(d_prop$animal, d_prop$response))
+animal_table |>
+  as.data.frame() |>
+  arrange((Freq))
+
+```
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 1 here
+d_region <- d_prop |>
+  select(RecordNo, region, response)
+
+ggplot(d_region, aes(x = region)) + 
+  geom_bar(fill = "darkolivegreen3") + 
+  labs(x = "", y = "People Who Indicated they'd win (count)", title = "Confidence in their Ability to Win Fights with Animals by Region") + 
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 2 here
+d_age <- d_prop |>
+  select(RecordNo, age, response) |>
+  mutate(age = case_when(age >= 80  & age <= 100 ~ '80-100',
+        age >= 60  & age <= 79 ~ '60-80',
+        age >= 40  & age <= 59 ~ '40-60', 
+        age >= 20  & age <= 39 ~ '20-40', 
+        age >= 0  & age <= 19 ~ '0-20')) 
+
+ggplot(d_age, aes(x = age)) + 
+  geom_bar(fill = "darkolivegreen3") + 
+  labs(x = "", y = "People Who Indicated they'd win (count)", title = "Confidence in their Ability to Win Fights with Animals by Age") + 
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 3 here
+#Figure 3.1
+d_educ_gender <- d_prop |>
+  select(RecordNo, educ, gender, response)
+
+ggplot(d_educ_gender, aes(x = educ)) + 
+  geom_bar(fill = "darkolivegreen3") + 
+  scale_x_discrete(labels = label_wrap(10)) +
+  labs(x = "", y = "People Who Indicated they'd win (count)", title = "Confidence in their Ability to Win Fights with Animals by Educational Attainment") + 
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+#Figure 3.2
+
+d_educ_gender <- d_prop |>
+  select(RecordNo, educ, gender, response)
+ggplot(d_educ_gender, aes(x = educ, fill = gender)) + 
+  geom_bar(position = "dodge") + 
+  scale_x_discrete(labels = label_wrap(10)) +
+  labs(x = "", y = "Indicated they'd win (count)", title = "Confidence in their Ability to Win Fights with Animals by Educational Attainment") + 
+  scale_fill_brewer(palette = "YlGn") +
+  theme_light() + 
+  theme(plot.title = element_text(hjust = 0.5))
+```

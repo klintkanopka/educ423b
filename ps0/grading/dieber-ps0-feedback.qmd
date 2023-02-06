@@ -1,0 +1,260 @@
+---
+title: "Problem Set 0"
+author: "Jürgen Dieber"
+format: html
+editor: visual
+---
+
+> Hi Jürgen! Great job - I made a few *small* notes below, but there isn't much to critique/comment on. Check the official solutions for potentially more efficient ways to do some of this stuff that may be helpful!
+>
+> Grade: 5/5
+
+## Instructions
+
+Answer the questions directly in this document. Please include all code and output in this document. To submit, prepend your last name to the file name (like `kanopka-ps0.qmd`) and upload the `.qmd` document to Canvas. You may consult other students, but please identify anyone you worked with, prepare your responses individually, and submit your own document. Failure to do so is an honor code violation.
+
+**I worked with: Emma Strouse, Dorna Abdi**
+
+## Part 1: Short Answers
+
+1.  **Describe the difference between** `pivot_longer()` **and** `pivot_wider()` **and a situation where you might use each. What happens to the number of observations and variables when transforming a dataframe using each function?**
+
+[Pivot_longer()]{.underline} is used to reshape data frames to tidy it up. One would use pivot_longer() with a df that includes several observations in one row, i.e. a "wide data frame". It decreases the number of columns by creating a new row for every observation with every instance, creating a "long data frame". For example, a medical data set include measurements of the amount of blood sugar in a patient in the morning, at noon and in the evening per day. This data set might have a column for morning, noon and evening, with the respective value that represent the blood sugar as the observation. Using pivot_longer() on it would pack morning, noon and evening into one column as observations and the respective blood sugar values in an extra column, creating two additional rows per patient per day, but reducing the amount of variables by one.
+
+> Really good example!
+
+[Pivot_wider()]{.underline} on the other hand does the exact opposite as it increases the number of columns by creating a column for each variable, thus reducing the number of rows. Pivot wider is useful when the names of the variables are the values in a column. An example would be a data set that includes various data points on a person, like time, date, age, email address and telephone number. In a lot of cases one would prefer to have all these variables in a separate column per person.
+
+2.  **Describe why this is one of the worst infographics you have ever seen. How could you begin to fix it?**
+
+    ![](http://livingqlikview.com/wp-content/uploads/2017/04/Worst-Data-Visualizations-06.jpg)
+
+What the info graphic wants to express is what percantage of the US population belongs to a specific ethnic/racial group, visualizing the change from 1960, over 2010 to 2060. However what it does convey is that the more southern and western states are exclusively white and the other groups are only to be found in the north.
+
+To fix it I would remove the map of north america from the graphical representation and either create a stacked bar chart or stacked area chart for the years 1960, 2010 and 2060.
+
+> Truly garbage graphic. Nice!
+
+## Part 2: Cleaning Data
+
+The following code chunk loads the `tidyverse` packages and fetches a dataset into an object called `d`. This data, from a [YouGov poll](https://today.yougov.com/topics/society/articles-reports/2021/05/13/lions-and-tigers-and-bears-what-animal-would-win-f), asks 1224 Americans, "Which of the following animals, if any, do you think you could beat in a fight if you were unarmed?"
+
+```{r}
+#| include: false
+
+library(tidyverse)
+
+d <- readRDS(url('https://github.com/klintkanopka/educ423b/blob/main/ps0/animal_fights.rds?raw=true'))
+```
+
+Using this data, complete the following data cleaning tasks:
+
+1.  Recode `gender` and `region` as strings that correspond with their labels.
+
+2.  Create new, dichotomized versions of the `animalfight1_XX` variables. Code them so that the variable takes a value of `1` if the respondent believes they can beat the animal in a fight and `0` otherwise. Name these new variables in the format: `d_animalname`
+
+    > Nice base `R` solution. Totally works, totally reasonable - but you might find a solution that uses `mutate()` and `case_when()` a little more elegant/easier - and require less copy/paste. Check the official solutions for that.
+
+```{r}
+#| echo: false
+
+# Write code for data cleaning here
+
+# Recode Gender
+d$gender <- as.character(d$gender)
+d$gender <- replace(d$gender, d$gender == '1', "Male" )
+d$gender <- replace(d$gender, d$gender == '2', "Female" )
+
+
+# Recode Region
+d$region <- as.character(d$region)
+d$region <- replace(d$region, d$region == '1', "Northeast" )
+d$region <- replace(d$region, d$region == '2', "Midwest" )
+d$region <- replace(d$region, d$region == '3', "South" )
+d$region <- replace(d$region, d$region == '4', "West" )
+
+# Recode Ethnicity
+d$race <- as.character(d$race)
+d$race <- replace(d$race, d$race == '1', "White" )
+d$race <- replace(d$race, d$race == '2', "Black" )
+d$race <- replace(d$race, d$race == '3', "Hispanic" )
+d$race <- replace(d$race, d$race == '4', "Asian" )
+d$race <- replace(d$race, d$race == '5', "Native American" )
+d$race <- replace(d$race, d$race == '6', "Two or more races" )
+d$race <- replace(d$race, d$race == '7', "Other" )
+d$race <- replace(d$race, d$race == '8', "Middle Eastern" )
+
+# Recode Education
+d$educ <- as.character(d$educ)
+d$educ <- replace(d$educ, d$educ == '1', "No HS" )
+d$educ <- replace(d$educ, d$educ == '2', "High school graduate" )
+d$educ <- replace(d$educ, d$educ == '3', "Some college" )
+d$educ <- replace(d$educ, d$educ == '4', "2-year" )
+d$educ <- replace(d$educ, d$educ == '5', "4-year" )
+d$educ <- replace(d$educ, d$educ == '6', "Post-grad" )
+
+
+
+# Make Binary
+d$animalfight1_1 <- as.character(d$animalfight1_1)
+d$d_rat <- replace(d$animalfight1_1, d$animalfight1_1 == '2', '0') 
+
+d$d_rat <- replace(d$d_rat, d$d_rat == '3', '0') 
+
+d$animalfight1_2 <- as.character(d$animalfight1_2)
+d$d_housecat <- replace(d$animalfight1_2, d$animalfight1_2 == '2', '0') 
+d$d_housecat <- replace(d$d_housecat, d$d_housecat == '3', '0') 
+
+d$animalfight1_3 <- as.character(d$animalfight1_3)
+d$d_mediumsizeddog <- replace(d$animalfight1_3, d$animalfight1_3 == '2', '0') 
+d$d_mediumsizeddog <- replace(d$d_mediumsizeddog, d$d_mediumsizeddog == '3', '0') 
+
+d$animalfight1_4 <- as.character(d$animalfight1_4)
+d$d_largedog <- replace(d$animalfight1_4, d$animalfight1_4 == '2', '0') 
+d$d_largedog <- replace(d$d_largedog, d$d_largedog == '3', '0') 
+
+d$animalfight1_5 <- as.character(d$animalfight1_5)
+d$d_kangaroo <- replace(d$animalfight1_5, d$animalfight1_5 == '2', '0') 
+d$d_kangaroo <- replace(d$d_kangaroo, d$d_kangaroo == '3', '0') 
+
+d$animalfight1_6 <- as.character(d$animalfight1_6)
+d$d_eagle <- replace(d$animalfight1_6, d$animalfight1_6 == '2', '0') 
+d$d_eagle <- replace(d$d_eagle, d$d_eagle == '3', '0') 
+
+d$animalfight1_7 <- as.character(d$animalfight1_7)
+d$d_grizzlybear <- replace(d$animalfight1_7, d$animalfight1_7 == '2', '0') 
+d$d_grizzlybear <- replace(d$d_grizzlybear, d$d_grizzlybear == '3', '0') 
+
+d$animalfight1_8 <- as.character(d$animalfight1_8)
+d$d_wolf <- replace(d$animalfight1_8, d$animalfight1_8 == '2', '0') 
+d$d_wolf <- replace(d$d_wolf, d$d_wolf == '3', '0') 
+
+d$animalfight1_9 <- as.character(d$animalfight1_9)
+d$d_lion <- replace(d$animalfight1_9, d$animalfight1_9 == '2', '0') 
+d$d_lion <- replace(d$d_lion, d$d_lion == '3', '0') 
+
+d$animalfight1_10 <- as.character(d$animalfight1_10)
+d$d_gorilla <- replace(d$animalfight1_10, d$animalfight1_10 == '2', '0') 
+d$d_gorilla <- replace(d$d_gorilla, d$d_gorilla == '3', '0') 
+
+d$animalfight1_11 <- as.character(d$animalfight1_11)
+d$d_chimpanzee <- replace(d$animalfight1_11, d$animalfight1_11 == '2', '0') 
+d$d_chimpanzee <- replace(d$d_chimpanzee, d$d_chimpanzee == '3', '0') 
+
+d$animalfight1_12 <- as.character(d$animalfight1_12)
+d$d_kingcobra <- replace(d$animalfight1_12, d$animalfight1_12 == '2', '0') 
+d$d_kingcobra <- replace(d$d_kingcobra, d$d_kingcobra == '3', '0') 
+
+d$animalfight1_13 <- as.character(d$animalfight1_13)
+d$d_elephant <- replace(d$animalfight1_13, d$animalfight1_13 == '2', '0') 
+d$d_elephant <- replace(d$d_elephant, d$d_elephant == '3', '0') 
+
+d$animalfight1_14 <- as.character(d$animalfight1_14)
+d$d_crocodile <- replace(d$animalfight1_14, d$animalfight1_14 == '2', '0') 
+d$d_crocodile <- replace(d$d_crocodile, d$d_crocodile == '3', '0') 
+
+d$animalfight1_15 <- as.character(d$animalfight1_15)
+d$d_goose <- replace(d$animalfight1_15, d$animalfight1_15 == '2', '0') 
+d$d_goose <- replace(d$d_goose, d$d_goose == '3', '0') 
+
+
+
+```
+
+3.  Using the recoded data and your dichotomized variables, output a table that ranks the animals from strongest to weakest by the proportion of respondents who believe they could win a fight against them. *Hint: Start with a* `pivot_longer()`
+
+```{r}
+#| echo: false
+
+
+# i had to rearrange some code so this block would run - please check for errors in the future. Also, I asked you to rank animals strongst to weakest, but you gave weakest to strongest. 
+
+# also note that in quarto documents, you don't need to call "print()" on objects you want to display
+
+d_new <- select(d, RecordNo, age, gender, region, educ, d_rat, d_housecat, d_mediumsizeddog, d_largedog, d_kangaroo, d_eagle, d_grizzlybear, d_wolf, d_lion, d_gorilla, d_chimpanzee, d_kingcobra, d_elephant, d_crocodile, d_goose) #starts_with("d_)
+
+print(d_new)
+  
+d_longer <- d_new %>%
+  pivot_longer(cols = -c(RecordNo, age, gender, region, educ), 
+               names_to = "Animal", 
+               values_to = "Outcome")
+
+print(d_longer)
+
+d_sorted <- d_longer %>%
+  group_by(Animal)%>%
+  summarise(probability = sum(as.numeric(Outcome))/n())%>%
+  arrange(desc(probability))
+  
+
+print(d_sorted)
+
+# let's show the correct way:
+arrange(d_sorted, probability)
+
+
+```
+
+## Part 3: Visualizing Data
+
+Using the data you prepared above, answer each of the questions below by creating a visualization using `ggplot`. Include titles and labels as needed so that the figure speaks for itself.
+
+1.  **What geographic region has the most confidence in their ability to win fights with animals?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 1 here
+
+d_confidence <- d_longer %>%
+  group_by(region)%>%
+  summarise(confidence = sum(as.numeric(Outcome)/n()))%>%
+  arrange(desc(confidence))
+
+print(d_confidence)
+
+ggplot(d_confidence) +
+  geom_col(aes(x = region, y = confidence))
+
+```
+
+2.  **Is there a relationship between confidence in winning fights and respondent age?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 2 here
+
+print(d_confidence)
+
+d_confidence <- d_longer %>%
+  group_by(age)%>%
+  summarise(confidence = sum(as.numeric(Outcome)/n()))%>%
+  arrange(desc(confidence))
+
+ggplot(d_confidence) +
+  geom_col(aes(x = age, y = confidence))
+
+```
+
+3.  **Is there a relationship between confidence in winning fights and educational attainment? Does it vary by gender?**
+
+```{r}
+#| echo: false
+
+# Write code for Figure 3 here
+
+d_absolute <- d_longer %>%
+  group_by(RecordNo)%>%
+  mutate(probability = sum(as.numeric(Outcome))/n())%>%
+  select(probability, educ, gender)%>%
+  ungroup()
+
+
+
+ggplot(d_absolute, aes(fill=gender, y=probability, x=educ)) + 
+    geom_bar(position="dodge", stat="summary")
+
+
+```

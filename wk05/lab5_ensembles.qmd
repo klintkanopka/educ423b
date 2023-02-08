@@ -1,0 +1,163 @@
+---
+title: "Implementing Super Learner in Tidymodels"
+author: "Klint Kanopka"
+format: html
+editor: visual
+---
+
+## Super Learner
+
+Much of this lab is adapted from [this tutorial and blog post](https://www.alexpghayes.com/post/2019-04-13_implementing-the-superlearner-with-tidymodels/) and [Chapter 15](https://www.tmwr.org/workflow-sets.html#workflow-sets) and [Chapter 20](https://www.tmwr.org/ensembles.html) from Tidy Modeling with R.
+
+## Loading Data and Packages
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(kknn)
+library(beepr)
+library(learningtower)
+library(viridis)
+
+set.seed(1337)
+
+d <- load_student(year = c(2012)) |> 
+  select(-stu_wgt)
+
+d_split <- d |> 
+  slice_sample(prop=0.025) |> 
+  select(-c("year", "school_id", "student_id")) |> 
+  na.omit() |> 
+  initial_split(prop=0.8) 
+
+d_folds <- vfold_cv(training(d_split), v=2) 
+
+std_recipe <- recipe(science ~ ., data=training(d_split)) |> 
+  step_normalize(all_numeric_predictors()) |> 
+  step_dummy(all_nominal_predictors())
+```
+
+## Training Constituent Models Using `workflow_set()` and the `finetune` Package
+
+Set up some models:
+
+```{r}
+elastic_net <- linear_reg(penalty=tune(), 
+                          mixture=tune()) |> 
+  set_engine('glmnet')
+
+knn_reg <- nearest_neighbor(neighbors=tune()) |> 
+  set_mode('regression') |> 
+  set_engine('kknn')
+
+lm <- linear_reg() |> 
+  set_engine('lm')
+```
+
+Set up the workflow set for all the models:
+
+```{r}
+wf_set <- workflow_set(
+  preproc = list(std_recipe),
+  models = list(elastic_net=elastic_net, 
+                knn=knn_reg, 
+                lm=lm)
+)
+
+wf_set
+```
+
+Next we tune and evaluate individual models:
+
+```{r}
+grid_ctrl <- control_grid(save_pred = TRUE,
+                          parallel_over = "everything",
+                          save_workflow = TRUE)
+
+grid_results <- wf_set |> 
+   workflow_map(seed = 1337,
+      resamples = d_folds,
+      grid = 5,
+      control = grid_ctrl)
+
+grid_results
+
+autoplot(grid_results, 
+         rank_metric = "rmse", 
+         metric = "rmse") +
+  theme_bw()
+```
+
+A more efficient approach can be to use *racing*:
+
+```{r}
+library(finetune)
+
+race_ctrl <- control_race(save_pred = TRUE,
+                          parallel_over = "everything",
+                          save_workflow = TRUE)
+
+race_results <- wf_set |> 
+   workflow_map("tune_race_anova",
+                seed = 1337,
+                resamples = d_folds,
+                grid = 5,
+                control = race_ctrl)
+
+race_results
+```
+
+```{r}
+autoplot(race_results,
+         rank_metric = "rmse",  
+         metric = "rmse") +
+   geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 90, hjust = 1) +
+   lims(y = c(3.0, 9.5)) +
+   theme(legend.position = "none") +
+  theme_bw()
+```
+
+## Ensembling with the `stacks` Package
+
+Now, with models in hand, we create the ensemble!
+
+```{r}
+library(stacks)
+
+pisa_stack <- stacks() |> 
+  add_candidates(grid_results)
+
+?blend_predictions
+
+meta_m <- blend_predictions(pisa_stack)
+
+meta_m
+autoplot(meta_m)
+
+```
+
+```{r}
+autoplot(meta_m, "weights") +
+  geom_text(aes(x = weight + 0.01, label = model), hjust = 0) + 
+  theme(legend.position = "none") +
+  lims(x = c(-0.01, 0.8)) +
+  theme_bw()
+```
+
+```{r}
+
+ensemble <- fit_members(meta_m)
+
+reg_metrics <- metric_set(rmse, rsq)
+test_pred <- predict(ensemble, testing(d_split)) %>% 
+  bind_cols(testing(d_split))
+
+test_pred |> 
+  reg_metrics(science, .pred)
+
+ggplot(test_pred, aes(x=science, y=.pred)) +
+  geom_point(color='darkorchid', alpha=0.2) +
+  geom_abline(aes(slope=1, intercept=0), lty=2) +
+  theme_bw()
+```
